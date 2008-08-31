@@ -1,7 +1,8 @@
 #include "script.h"
 #include <QFile>
 
-MIRCScript::MIRCScript() {
+MIRCScript::MIRCScript(MIRCScriptManager *m) {
+	manager = m;
 }
 
 bool MIRCScript::load(QString filename) {
@@ -16,7 +17,7 @@ bool MIRCScript::load(QString filename) {
 }
 
 bool MIRCScript::parse(QString code) {
-	mirc_script_engine *interpreter = new mirc_script_engine();
+	mirc_script_engine *interpreter = new mirc_script_engine(manager);
 	mirc_script parser(interpreter);
 	parse_info<> info = boost::spirit::parse((const char*)code.toLatin1(), parser);
 	loaded = info.full;
@@ -29,7 +30,7 @@ bool MIRCScript::parse(QString code) {
 
 bool MIRCScript::run() {
 	if (!loaded) return false;
-	mirc_script_engine *interpreter = new mirc_script_engine();
+	mirc_script_engine *interpreter = new mirc_script_engine(manager);
 	interpreter->stage = EXECUTE;
 	mirc_script parser(interpreter);
 	parse_info<> info = boost::spirit::parse((const char*)script.toLatin1(), parser);

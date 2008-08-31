@@ -17,6 +17,8 @@
 #include <QStringList>
 #include <QMap>
 #include <QStack>
+//#include "mirc.h"
+class MIRCScriptManager;
 
 using namespace std;
 using namespace boost;
@@ -42,6 +44,7 @@ enum mirc_engine_stage {
 class mirc_script_engine : public QObject {
 	Q_OBJECT
 private:
+	MIRCScriptManager *manager;
 	mirc_aliases::iterator current_alias;
 	mirc_variables::iterator current_variable;
 	QStack<QStringList> stack;
@@ -51,7 +54,8 @@ public:
 	mirc_aliases aliases;
 	mirc_variables vars;
 
-	mirc_script_engine() : script() {
+	mirc_script_engine(MIRCScriptManager *m) : script() {
+		manager = m;
 		stage = PARSE;
 		current_alias = aliases.end();
 		current_variable = vars.end();

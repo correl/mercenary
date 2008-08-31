@@ -1,4 +1,5 @@
 #include "mirc.h"
 
-MIRCScriptManager::MIRCScriptManager(QObject *parent = 0) {
+MIRCScriptManager::MIRCScriptManager(QObject *parent) {
+	this->parent = parent;
 }

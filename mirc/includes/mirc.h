@@ -4,15 +4,26 @@
 #include <QObject>
 #include <QString>
 #include <QMap>
+#include <QVector>
 #include "script.h"
+
+class MIRCScript;
 
 class MIRCScriptManager : public QObject {
 	Q_OBJECT
-
+private:
+	QObject *parent;
+	QVector<MIRCScript> scripts;
+	QMap<QString, QString> _variables;
 public:
-	//QMap<QString, QString> variables;
+	MIRCScriptManager(QObject *parent = 0);
+	/*
+	bool load(QString filename);
+	bool unload(QString filename);
 	
-	MIRCScriptManager(QObject *parent);
+	QString call_alias(QString alias, QStringList arguments);
+	QString variable(QString variable);
+	*/
 };
 
 #endif

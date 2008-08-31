@@ -10,12 +10,13 @@
 class MIRCScript : public QObject {
 	Q_OBJECT
 private:
+	MIRCScriptManager *manager;
 	QString script;
 	QMap<QString, mirc_alias> _aliases;
 	QMap<QString, QString> _variables;
 	bool loaded;
 public:
-	MIRCScript();
+	MIRCScript(MIRCScriptManager *m);
 	bool load(QString filename);
 	bool parse(QString script);
 	bool run();
