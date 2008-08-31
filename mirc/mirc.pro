@@ -13,4 +13,5 @@ INCLUDEPATH += . includes
 HEADERS += includes/mirc.h includes/parser.h includes/script.h
 SOURCES += src/mirc.cpp \
  src/parser.cpp \
- src/script.cpp
+ src/script.cpp \
+ src/main.cpp

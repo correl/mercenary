@@ -22,8 +22,11 @@ public:
 	bool unload(QString filename);
 	
 	QString call_alias(QString alias, QStringList arguments);
-	QString variable(QString variable);
 	*/
+	bool hasVariable(QString variable);
+	QString variable(QString variable);
+	void variable(QString variable, QString value);
+	QMap<QString, QString> variables();
 };
 
 #endif

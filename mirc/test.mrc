@@ -1,6 +1,7 @@
 ; Hey, here's some test code
 set name Correl
-%name = Correl $&
+%first = Correl
+%name = %first $&
 	Roush
 echo Hello, %name!
 alias dostuff {

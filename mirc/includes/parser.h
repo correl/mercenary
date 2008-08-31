@@ -1,3 +1,6 @@
+#ifndef MIRC_PARSER_H
+#define MIRC_PARSER_H
+
 /*
 	Mercenary
 	
@@ -17,7 +20,7 @@
 #include <QStringList>
 #include <QMap>
 #include <QStack>
-//#include "mirc.h"
+
 class MIRCScriptManager;
 
 using namespace std;
@@ -54,83 +57,18 @@ public:
 	mirc_aliases aliases;
 	mirc_variables vars;
 
-	mirc_script_engine(MIRCScriptManager *m) : script() {
-		manager = m;
-		stage = PARSE;
-		current_alias = aliases.end();
-		current_variable = vars.end();
-	}
+	mirc_script_engine(MIRCScriptManager *m);
 	
-	void handle_alias_definition(char const* str, char const* end) {
-		if (stage != PARSE) return;
-		
-		string s(str, end);
-		aliases.insert(s.c_str(), mirc_alias(true));
-		current_alias = aliases.find(s.c_str());
-	}
-	void handle_alias_definition_local(char const* str, char const* end) {
-		if (stage != PARSE) return;
-		
-		string s(str, end);
-		aliases.insert(s.c_str(), mirc_alias(false));
-		current_alias = aliases.find(s.c_str());
-	}
-	void close_alias(char const*, char const*) {
-		if (stage != PARSE) return;
-		
-		if (!aliases.empty() && current_alias != aliases.end()) {
-			current_alias = aliases.end();
-		}
-	}
-	void store_code(char const* str, char const* end) {
-		if (stage != PARSE) return;
-		
-		string s(str, end);
-		if (!aliases.empty() && current_alias != aliases.end()) {
-			current_alias->code.append(s.c_str()).append("\n");
-		} else {
-			script.code.append(s.c_str()).append("\n");
-		}
-	}
-	void call_alias(char const*, char const*) {
-		if (stage != EXECUTE) return;
-		
-	}
-	void return_alias(char const*, char const*) {
-	}
-	void declare_variable(char const* str, char const* end) {
-		if (stage != EXECUTE) return;
-		string s(str, end);
-		vars.insert(s.c_str(), "");
-		current_variable = vars.find(s.c_str());
-		stack.push(QStringList());
-	}
-	void assign_variable(char const* str, char const* end) {
-		if (stage != EXECUTE) return;
-		
-		if (current_variable != vars.end()) {
-			string s(str, end);
-			*current_variable = (!stack.isEmpty() ? stack.pop().join(" ") : "");
-			current_variable = vars.end();
-		}
-	}
-	void fetch_variable(char const*, char const*) {
-		if (stage != EXECUTE) return;
-		
-	}
-	void append_expression(char const* str, char const *end) {
-		if (stage != EXECUTE) return;
-		
-		string s(str, end);
-		QStringList list;
-		if (stack.isEmpty()) {
-			list << s.c_str();
-		} else {
-			list = stack.pop();
-			list << s.c_str();
-		}
-		stack.push(list);
-	}
+	void handle_alias_definition(char const* str, char const* end);
+	void handle_alias_definition_local(char const* str, char const* end);
+	void close_alias(char const*, char const*);
+	void store_code(char const* str, char const* end);
+	void call_alias(char const*, char const*);
+	void return_alias(char const*, char const*);
+	void declare_variable(char const* str, char const* end);
+	void assign_variable(char const* str, char const* end);
+	void fetch_variable(char const*, char const*);
+	void append_expression(char const* str, char const *end);
 };
 
 struct mirc_script : public grammar<mirc_script> {
@@ -164,8 +102,11 @@ struct mirc_script : public grammar<mirc_script> {
 			s_action a_def ( bind( &mirc_script_engine::handle_alias_definition, self.actions, _1, _2 ) );
 			s_action l_def ( bind( &mirc_script_engine::handle_alias_definition_local, self.actions, _1, _2 ) );
 			s_action a_close ( bind( &mirc_script_engine::close_alias, self.actions, _1, _2 ) );
+			s_action a_call ( bind( &mirc_script_engine::call_alias, self.actions, _1, _2 ) );
+			s_action a_return ( bind( &mirc_script_engine::return_alias, self.actions, _1, _2 ) );
 			s_action v_def ( bind( &mirc_script_engine::declare_variable, self.actions, _1, _2 ) );
 			s_action v_assign ( bind( &mirc_script_engine::assign_variable, self.actions, _1, _2 ) );
+			s_action v_fetch ( bind( &mirc_script_engine::fetch_variable, self.actions, _1, _2 ) );
 			s_action e_append ( bind( &mirc_script_engine::append_expression, self.actions, _1, _2 ) );
 			s_action s_code ( bind( &mirc_script_engine::store_code, self.actions, _1, _2 ) );
 			
@@ -177,7 +118,6 @@ struct mirc_script : public grammar<mirc_script> {
 				;
 			space
 				=	(	blank_p
-					//|	(ch_p('\\') >> eol_p)
 					|	str_p("$&") >> *blank_p >> eol_p
 				)
 				;
@@ -185,10 +125,10 @@ struct mirc_script : public grammar<mirc_script> {
 				=	alpha_p >> *alnum_p
 				;
 			string
-				=	(	variable
-						| alias_function
-						| +(graph_p - ch_p(',') - ch_p('(') - ch_p(')'))
-					)[e_append]
+				=	(	variable[e_append][v_fetch]
+						| alias_function[e_append]
+						| (+(graph_p - ch_p(',') - ch_p('(') - ch_p(')')))[e_append]
+					)
 				;
 			expression
 				=	string >> *(*space >> string)
@@ -217,19 +157,11 @@ struct mirc_script : public grammar<mirc_script> {
 				>>	!(
 						ch_p('(') >> *space
 					>>	parameters >> *space
-					/*
-					>>	(expression - ch_p(','))
-					>>	*(	*space
-						>>	ch_p(',') >> *space
-						>>	(expression - ch_p(','))
-						)
-					*/
 					>> ch_p(')')
 					)
 				;
 			alias_definition
 				=	str_p("alias") >> *space
-				//>>	!(str_p("-l") >> *space)
 				>>	if_p(str_p("-l") >> *space)[identifier[l_def]].else_p[identifier[a_def]]
 				>> *space >> !eol_p
 				>>	code_block
@@ -271,3 +203,5 @@ struct mirc_script : public grammar<mirc_script> {
 		rule<ScannerT> const& start() const { return script; }
 	};
 };
+
+#endif
