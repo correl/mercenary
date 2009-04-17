@@ -3,6 +3,8 @@
 
 MIRCScript::MIRCScript(MIRCScriptManager *m) {
 	manager = m;
+	interpreter = new mirc_script_engine(manager);
+	parser = new mirc_script(interpreter);
 }
 
 bool MIRCScript::load(QString filename) {
@@ -17,9 +19,7 @@ bool MIRCScript::load(QString filename) {
 }
 
 bool MIRCScript::parse(QString code) {
-	mirc_script_engine *interpreter = new mirc_script_engine(manager);
-	mirc_script parser(interpreter);
-	parse_info<> info = boost::spirit::parse((const char*)code.toLatin1(), parser);
+	parse_info<> info = boost::spirit::parse((const char*)code.toLatin1(), *parser);
 	loaded = info.full;
 	if (loaded) {
 		script = interpreter->script.code;
@@ -30,10 +30,8 @@ bool MIRCScript::parse(QString code) {
 
 bool MIRCScript::run() {
 	if (!loaded) return false;
-	mirc_script_engine *interpreter = new mirc_script_engine(manager);
 	interpreter->stage = EXECUTE;
-	mirc_script parser(interpreter);
-	parse_info<> info = boost::spirit::parse((const char*)script.toLatin1(), parser);
+	parse_info<> info = boost::spirit::parse((const char*)script.toLatin1(), *parser);
 	if (info.full) {
 		_variables = interpreter->vars;
 	}

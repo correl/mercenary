@@ -1,3 +1,4 @@
+#include <QTextStream>
 #include "parser.h"
 #include "mirc.h"
 
@@ -12,8 +13,9 @@ void mirc_script_engine::handle_alias_definition(char const* str, char const* en
 	if (stage != PARSE) return;
 	
 	string s(str, end);
-	aliases.insert(s.c_str(), mirc_alias(true));
-	current_alias = aliases.find(s.c_str());
+	QString alias(s.c_str());
+	this->aliases.insert(alias, mirc_alias(true));
+	current_alias = this->aliases.find(alias);
 }
 void mirc_script_engine::handle_alias_definition_local(char const* str, char const* end) {
 	if (stage != PARSE) return;
@@ -39,9 +41,12 @@ void mirc_script_engine::store_code(char const* str, char const* end) {
 		script.code.append(s.c_str()).append("\n");
 	}
 }
-void mirc_script_engine::call_alias(char const*, char const*) {
+void mirc_script_engine::call_alias(char const* str, char const* end) {
 	if (stage != EXECUTE) return;
-	
+	string s(str, end);
+	QStringList params = QString(s.c_str()).split(" ");
+	QString alias = params.takeFirst();
+	manager->call_alias(alias, stack.top());
 }
 void mirc_script_engine::return_alias(char const*, char const*) {
 }
@@ -87,4 +92,8 @@ void mirc_script_engine::append_expression(char const* str, char const *end) {
 		list << s.c_str();
 	}
 	stack.push(list);
+}
+
+void mirc_script_engine::clear_stack(char const*, char const*) {
+	stack.clear();
 }

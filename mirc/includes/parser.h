@@ -51,6 +51,7 @@ private:
 	mirc_aliases::iterator current_alias;
 	mirc_variables::iterator current_variable;
 	QStack<QStringList> stack;
+
 public:
 	mirc_engine_stage stage;
 	mirc_alias script;
@@ -69,6 +70,7 @@ public:
 	void assign_variable(char const* str, char const* end);
 	void fetch_variable(char const*, char const*);
 	void append_expression(char const* str, char const *end);
+	void clear_stack(char const*, char const*);
 };
 
 struct mirc_script : public grammar<mirc_script> {
@@ -109,6 +111,7 @@ struct mirc_script : public grammar<mirc_script> {
 			s_action v_fetch ( bind( &mirc_script_engine::fetch_variable, self.actions, _1, _2 ) );
 			s_action e_append ( bind( &mirc_script_engine::append_expression, self.actions, _1, _2 ) );
 			s_action s_code ( bind( &mirc_script_engine::store_code, self.actions, _1, _2 ) );
+			s_action c_stack ( bind( &mirc_script_engine::clear_stack, self.actions, _1, _2 ) );
 			
 			script
 				=	*(
@@ -150,7 +153,7 @@ struct mirc_script : public grammar<mirc_script> {
 				;
 			alias_action
 				=	!ch_p('/') >> !ch_p('/')
-				>>	identifier >> *space >> parameters
+				>>	(identifier >> *(*space >> parameters))[a_call]
 				;
 			alias_function
 				=	ch_p('$') >> identifier
@@ -173,7 +176,7 @@ struct mirc_script : public grammar<mirc_script> {
 							assignment /* Must come first to avoid "var" being caught as an action */
 						|	alias_action
 						)[s_code]
-					)
+					)[c_stack]
 				>> !eol_p
 				;
 			code_block

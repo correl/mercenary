@@ -1,8 +1,9 @@
 ; Hey, here's some test code
 set name Correl
 %first = Correl
+%middle = Joseph
 %name = %first $&
-	Roush
+	%middle Roush
 echo Hello, %name!
 alias dostuff {
 	; Not very useful, but good for testing the parser!
@@ -14,3 +15,6 @@ alias -l dosomethingelse {
 	; Useless local alias!
 	echo -s Busy doing nothing
 }
+dostuff that nobody will see
+dosomethingelse entirely
+donothing because this alias doesn't exist

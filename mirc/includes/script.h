@@ -14,6 +14,8 @@ private:
 	QString script;
 	QMap<QString, mirc_alias> _aliases;
 	QMap<QString, QString> _variables;
+	mirc_script_engine *interpreter;
+	mirc_script *parser;
 	bool loaded;
 public:
 	MIRCScript(MIRCScriptManager *m);
