@@ -34,6 +34,8 @@ public:
 	QString variable(QString variable);
 	void variable(QString variable, QString value);
 	QMap<QString, QString> variables();
+signals:
+	void unknown_alias(QString alias, QStringList arguments);
 };
 
 #endif

@@ -2,6 +2,8 @@
 #include <QFileInfo>
 
 MessageHandler::MessageHandler( IRCClient *irc, QWidget *parent ) : QTabWidget( parent ) {
+	this->scriptManager = new MIRCScriptManager();
+	connect(this->scriptManager, SIGNAL( unknown_alias( QString, QStringList ) ), this, SLOT( call_alias( QString, QStringList ) ) );
 	this->irc = irc;
 	connect( irc, SIGNAL( messageRcvd( QString, QString, QString, QStringList, QString ) ), this, SLOT( messageRcvd( QString, QString, QString, QStringList, QString ) ) );
 	connect( irc, SIGNAL( registered() ), this, SLOT( autoRun() ) );
@@ -94,82 +96,10 @@ void MessageHandler::messageRcvdDCC( QString nickName, QString text ) {
 
 void MessageHandler::processCmd( QString cmdText ) {
 	qDebug() << cmdText;
-	QStringList args = cmdText.split( ' ' );
-	QStringList newargs;
-	
-	QString cmd = args.takeFirst().toLower();
-	for( int i = 0; i < args.count(); i++ ) {
-		if( args[i].startsWith( '$' ) ) {
-			args[i] = parseVar( args[i] );
-			//QString var = args[i].right( args[i].length() - 1 );
-			//if( variables.contains( var ) ) { args[i] = variables[var].toString(); }
-		}
-	}
-	if( cmd == "server" || cmd == "connect" ) {
-		if( args.count() < 1 ) { return; }
-		irc->quit( tr( "Changing servers" ) );
-		QString host = args.takeFirst();
-		int port = 0;
-		if( host.contains( ':' ) ) {
-			QStringList splitHost = host.split( ':' );
-			host = splitHost.takeFirst();
-			port = splitHost.join( "" ).toInt();
-		}
-		port = port > 0 ? port : 6667;
-		QString nickName = args.count() > 0 ? args.takeFirst() : irc->getNickName();
-		QString userName = args.count() > 0 ? args.takeFirst() : irc->getUserName();
-		QString realName = args.count() > 0 ? args.join( " " ) : irc->getRealName();
-		irc->connectAndRegister(
-			host, // Host
-			port > 0 ? port : 6667, // Port
-			nickName,
-			userName,
-			realName );
-	} else if( cmd == "nick" ) {
-		if( args.count() < 1 ) { return; }
-		irc->nick( args[0] );
-	} else if( cmd == "msg" || cmd == "privmsg" ) {
-		if( args.count() < 2 ) { return; }
-		newargs += args.takeFirst();
-		if( newargs[0].startsWith( "=")  ) {
-			// DCC Chat
-			((DCCChatServer*)DCCServers[DCCNicks[newargs[0].right( newargs[0].length() - 1 )]])->sendText( args.join( " " ) );
-		} else {
-			irc->msg( newargs[0], args.join( " " ) );
-		}
-		// Update existing chat windows with the sent message
-		QString window;
-		QStringList windows = newargs[0].split( "," );
-		foreach( window, windows ) {
-			if( !window.startsWith( "=" ) && this->windows.keys().contains( window ) ) { this->windows[window]->message( irc->getNickName(), args.join( " " ) ); }
-		}
-	} else if( cmd == "notice" ) {
-		if( args.count() < 2 ) { return; }
-		QString dest = args.takeFirst();
-		irc->notice( dest, args.join( " " ) );
-	} else if( cmd == "ctcp" ) {
-		if( args.count() < 2 ) { return; }
-		newargs += args.takeFirst();
-		irc->ctcp( newargs[0], args.join( " " ) );
-	} else if( cmd == "join" ) {
-		irc->join( args.join( "," ) );
-	} else if( cmd == "set" ) {
-		QString var = args.takeFirst();
-		variables[var] = args.join( " " );
-	} else if( cmd == "dcc" ) {
-		if( args.count() < 2 ) { return; }
-		QString type = args.takeFirst();
-		QString nick = args.takeFirst();
-		if( type == "chat" ) {
-			startDCC( nick );
-		} else if( type == "send" ) {
-			if( args.count() == 0 ) { return; }
-			startDCC( nick, args.join( " " ) );
-		}
-	} else if( cmd == "quit" || cmd == "q" ) {
-		if( args.count() > 0 ) { irc->quit( args.join( " " ) ); }
-		else { irc->quit(); }
-	}
+
+	MIRCScript *script = new MIRCScript(this->scriptManager);
+	script->parse(cmdText);
+	script->run();
 }
 void MessageHandler::autoRun() {
 	//irc->join( "#pinet" );
@@ -213,3 +143,80 @@ void MessageHandler::connectedDCCChat( QString nickName ) {
 
 void MessageHandler::sentRAW( QString text ) { qDebug() << ">>> " << text.trimmed(); }
 void MessageHandler::rcvdRAW( QString text ) { qDebug() << "<<< " << text.trimmed(); }
+
+bool MessageHandler::call_alias(QString alias, QStringList args) {
+	QStringList newargs;
+	if( alias == "server" || alias == "connect" ) {
+		if( args.count() < 1 ) { return true; }
+		irc->quit( tr( "Changing servers" ) );
+		QString host = args.takeFirst();
+		int port = 0;
+		if( host.contains( ':' ) ) {
+			QStringList splitHost = host.split( ':' );
+			host = splitHost.takeFirst();
+			port = splitHost.join( "" ).toInt();
+		}
+		port = port > 0 ? port : 6667;
+		QString nickName = args.count() > 0 ? args.takeFirst() : irc->getNickName();
+		QString userName = args.count() > 0 ? args.takeFirst() : irc->getUserName();
+		QString realName = args.count() > 0 ? args.join( " " ) : irc->getRealName();
+		irc->connectAndRegister(
+			host, // Host
+			port > 0 ? port : 6667, // Port
+			nickName,
+			userName,
+			realName );
+	} else if( alias == "nick" ) {
+		if( args.count() < 1 ) { return true; }
+		irc->nick( args[0] );
+	} else if( alias == "msg" || alias == "privmsg" ) {
+		if( args.count() < 2 ) { return true; }
+		newargs += args.takeFirst();
+		if( newargs[0].startsWith( "=")  ) {
+			// DCC Chat
+			((DCCChatServer*)DCCServers[DCCNicks[newargs[0].right( newargs[0].length() - 1 )]])->sendText( args.join( " " ) );
+		} else {
+			irc->msg( newargs[0], args.join( " " ) );
+		}
+		// Update existing chat windows with the sent message
+		QString window;
+		QStringList windows = newargs[0].split( "," );
+		foreach( window, windows ) {
+			if( !window.startsWith( "=" ) && this->windows.keys().contains( window ) ) { this->windows[window]->message( irc->getNickName(), args.join( " " ) ); }
+		}
+	} else if( alias == "notice" ) {
+		if( args.count() < 2 ) { return true; }
+		QString dest = args.takeFirst();
+		irc->notice( dest, args.join( " " ) );
+	} else if( alias == "ctcp" ) {
+		if( args.count() < 2 ) { return true; }
+		newargs += args.takeFirst();
+		irc->ctcp( newargs[0], args.join( " " ) );
+	} else if( alias == "join" ) {
+		irc->join( args.join( "," ) );
+	} else if( alias == "set" ) {
+		QString var = args.takeFirst();
+		variables[var] = args.join( " " );
+	} else if( alias == "dcc" ) {
+		if( args.count() < 2 ) { return true; }
+		QString type = args.takeFirst();
+		QString nick = args.takeFirst();
+		if( type == "chat" ) {
+			startDCC( nick );
+		} else if( type == "send" ) {
+			if( args.count() == 0 ) { return true; }
+			startDCC( nick, args.join( " " ) );
+		}
+	} else if( alias == "quit" || alias == "q" ) {
+		if( args.count() > 0 ) { irc->quit( args.join( " " ) ); }
+		else { irc->quit(); }
+	} else {
+		return false;
+	}
+	return true;
+}
+void MessageHandler::alias_join(QStringList args) {
+	irc->join( args.join( "," ) );
+}
+void MessageHandler::alias_msg(QStringList args) {
+}

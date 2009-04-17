@@ -2,8 +2,9 @@
 #include <QString>
 #include <QStringList>
 #include <QPointer>
-#include "../src/ircclient.h"
-#include "../src/dccserver.h"
+#include <ircclient.h>
+#include <dccserver.h>
+#include <mirc.h>
 #include "chatwindow.h"
 
 class MessageHandler : public QTabWidget {
@@ -17,12 +18,17 @@ private:
 	bool DCCSendAhead;
 	QHash< int, DCCServer* > DCCServers;
 	QHash< QString, int > DCCNicks;
+	MIRCScriptManager *scriptManager;
 	
 	void _addWindow( QString name, QString defaultCmd = "", bool focusOnOpen = false );
 	QString parseVar( QString text );
 public:
 	MessageHandler( IRCClient *irc, QWidget *parent = 0 );
+
+	void alias_join(QStringList args);
+	void alias_msg(QStringList args);
 public slots:
+	bool call_alias(QString alias, QStringList args);
 	void messageRcvd( QString type, QString src, QString dest, QStringList values, QString text );
 	void messageSentDCC( QString nickName, QString text );
 	void messageRcvdDCC( QString nickName, QString text );
