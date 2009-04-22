@@ -41,14 +41,26 @@ void mirc_script_engine::store_code(char const* str, char const* end) {
 		script.code.append(s.c_str()).append("\n");
 	}
 }
+void mirc_script_engine::set_alias(char const* str, char const* end) {
+	string s(str, end);
+	_alias = s.c_str();
+	stack.push(QStringList());
+}
 void mirc_script_engine::call_alias(char const* str, char const* end) {
 	if (stage != EXECUTE) return;
 	string s(str, end);
 	QStringList params = QString(s.c_str()).split(" ");
 	QString alias = params.takeFirst();
 	manager->call_alias(alias, stack.top());
+	stack.pop();
 }
-void mirc_script_engine::return_alias(char const*, char const*) {
+void mirc_script_engine::return_alias(char const* str, char const* end) {
+	if (stage != EXECUTE) return;
+	string s(str, end);
+	manager->call_alias(_alias, stack.top());
+	stack.pop();
+	current_value.clear();
+	current_value << manager->return_value();
 }
 void mirc_script_engine::declare_variable(char const* str, char const* end) {
 	if (stage != EXECUTE) return;

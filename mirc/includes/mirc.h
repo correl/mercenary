@@ -2,6 +2,7 @@
 #define MIRC_H
 
 #include <QObject>
+#include <QDebug>
 #include <QString>
 #include <QStringList>
 #include <QMap>
@@ -9,6 +10,8 @@
 #include <QTextStream>
 #include "script.h"
 #include "parser.h"
+
+#define MIRC_VERSION "0.1"
 
 class MIRCScript;
 
@@ -20,6 +23,7 @@ private:
 	QMap<QString, QString> _variables;
 	QMap<QString,void (*)(QStringList)> internal_aliases;
 	QMap<QString, mirc_alias> aliases;
+	QString _return_value;
 	QTextStream *output;
 public:
 	MIRCScriptManager(QObject *parent = 0);
@@ -34,6 +38,9 @@ public:
 	QString variable(QString variable);
 	void variable(QString variable, QString value);
 	QMap<QString, QString> variables();
+	QString return_value();
+public slots:
+	void return_value(QString value);
 signals:
 	void unknown_alias(QString alias, QStringList arguments);
 };

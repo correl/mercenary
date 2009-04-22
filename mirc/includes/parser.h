@@ -53,6 +53,7 @@ private:
 	mirc_variables::iterator current_variable;
 	QStringList current_value;
 	QStack<QStringList> stack;
+	QString _alias;
 
 public:
 	mirc_engine_stage stage;
@@ -66,6 +67,7 @@ public:
 	void handle_alias_definition_local(char const* str, char const* end);
 	void close_alias(char const*, char const*);
 	void store_code(char const* str, char const* end);
+	void set_alias(char const* str, char const* end);
 	void call_alias(char const*, char const*);
 	void return_alias(char const*, char const*);
 	void declare_variable(char const* str, char const* end);
@@ -109,6 +111,7 @@ struct mirc_script : public grammar<mirc_script> {
 			s_action a_def ( bind( &mirc_script_engine::handle_alias_definition, self.actions, _1, _2 ) );
 			s_action l_def ( bind( &mirc_script_engine::handle_alias_definition_local, self.actions, _1, _2 ) );
 			s_action a_close ( bind( &mirc_script_engine::close_alias, self.actions, _1, _2 ) );
+			s_action a_set ( bind( &mirc_script_engine::set_alias, self.actions, _1, _2 ) );
 			s_action a_call ( bind( &mirc_script_engine::call_alias, self.actions, _1, _2 ) );
 			s_action a_return ( bind( &mirc_script_engine::return_alias, self.actions, _1, _2 ) );
 			s_action v_def ( bind( &mirc_script_engine::declare_variable, self.actions, _1, _2 ) );
@@ -141,7 +144,7 @@ struct mirc_script : public grammar<mirc_script> {
 				;
 			value
 				=	(	variable[v_append][v_fetch]
-						| alias_function[v_append]
+						| alias_function[v_append][a_return]
 						| string[v_append]
 					)
 				;
@@ -150,7 +153,8 @@ struct mirc_script : public grammar<mirc_script> {
 				>>	*(+space >> (+(*nospace >> value))[e_append])
 				;
 			expression_group
-				=	expression | expression_group
+				=	(*nospace >> *(*(ch_p(',') | ch_p('(') | ch_p(')'))[v_append] >> value))[e_append]
+				>>	*(+space >> (+(*nospace >> *(*(ch_p(',') | ch_p('(') | ch_p(')'))[v_append] >> value))[e_append])[e_append])
 				;
 			parameters
 				=	expression >> *(*space >> ch_p(',') >> *space >> expression)
@@ -166,10 +170,10 @@ struct mirc_script : public grammar<mirc_script> {
 				;
 			alias_action
 				=	!ch_p('/') >> !ch_p('/')
-				>>	(identifier >> *(*space >> parameters))[a_call]
+				>>	(identifier[a_set] >> *(*space >> parameters))[a_call]
 				;
 			alias_function
-				=	ch_p('$') >> identifier
+				=	ch_p('$') >> identifier[a_set]
 				>>	!(
 						ch_p('(') >> *space
 					>>	parameters >> *space

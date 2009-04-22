@@ -26,10 +26,28 @@ void MIRCScriptManager::call_alias(QString alias, QStringList arguments) {
 		internal_aliases[alias](arguments);
 	} else {
 		//TODO: check known scripted aliases!!!
-		emit unknown_alias(alias, arguments);
+		
+		// Handle some builtins
+		if (alias == "lower") {
+			return_value(arguments.join(" ").toLower());
+		} else if (alias == "version") {
+			return_value(MIRC_VERSION);
+		} else {
+			qDebug() << aliases.keys();
+			if (aliases.find(alias) != aliases.end()) {
+				mirc_alias a = aliases[alias];
+				qDebug() << "SCRIPTED ALIAS" << alias;
+			}
+			emit unknown_alias(alias, arguments);
+		}
 	}
 }
-
+QString MIRCScriptManager::return_value() {
+	return _return_value;
+}
+void MIRCScriptManager::return_value(QString value) {
+	_return_value = value;
+}
 bool MIRCScriptManager::register_alias(QString alias, void (*fn)(QStringList)) {
 	internal_aliases[alias] = fn;
 }

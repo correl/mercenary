@@ -3,9 +3,10 @@ set name Correl
 %first = Correl
 %middle = Joseph
 %name = %first $&
-	%middle $+ Roush $&
-	$+ ... how are you?
-echo Hello, %name!
+	%middle Roush
+echo Hello %name $+ ! $&
+	How $lower(ArE YoU) $+ ?
+echo You're testing Mercenary v $+ $version
 alias dostuff {
 	; Not very useful, but good for testing the parser!
 	var %b = 42
