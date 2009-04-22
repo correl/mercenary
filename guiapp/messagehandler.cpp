@@ -210,7 +210,12 @@ bool MessageHandler::call_alias(QString alias, QStringList args) {
 	} else if( alias == "quit" || alias == "q" ) {
 		if( args.count() > 0 ) { irc->quit( args.join( " " ) ); }
 		else { irc->quit(); }
+	} else if(alias == "echo") {
+		windows["status"]->echo(args.join(" "));
 	} else {
+		//TODO: Script error! Unknown alias.... WHEREVER WE ARE IN WHICHEVER SCRIPT IT IS THAT WE'RE RUNNING!!
+		//BUT WAIT!!!!! NO!!!! The script manager is the only thing handling that!!!
+		//IN FACT, ALL THE ABOVE ALIASES BELONG IN THE IRC CLIENT LIBRARY, REALLY! PERHAPS?
 		return false;
 	}
 	return true;

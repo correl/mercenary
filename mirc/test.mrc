@@ -3,7 +3,8 @@ set name Correl
 %first = Correl
 %middle = Joseph
 %name = %first $&
-	%middle Roush
+	%middle $+ Roush $&
+	$+ ... how are you?
 echo Hello, %name!
 alias dostuff {
 	; Not very useful, but good for testing the parser!

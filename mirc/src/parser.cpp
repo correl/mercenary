@@ -70,6 +70,13 @@ void mirc_script_engine::assign_variable(char const* str, char const* end) {
 void mirc_script_engine::fetch_variable(char const*, char const*) {
 	if (stage != EXECUTE) return;
 	
+	if (!current_value.isEmpty()) {
+		QString var = current_value.last();
+		current_value.removeLast();
+		var = (manager->hasVariable(var) ? manager->variable(var) : vars[var]);
+		current_value << var;
+	}
+/*
 	if (!stack.isEmpty()) {
 		QStringList values = stack.pop();
 		if (!values.isEmpty()) {
@@ -79,19 +86,24 @@ void mirc_script_engine::fetch_variable(char const*, char const*) {
 		}
 		stack.push(values);
 	}
+*/
+}
+void mirc_script_engine::append_value(char const* str, char const *end) {
+	if (stage != EXECUTE) return;
+
+	string s(str, end);
+	current_value << s.c_str();
 }
 void mirc_script_engine::append_expression(char const* str, char const *end) {
 	if (stage != EXECUTE) return;
-	
+
 	string s(str, end);
 	QStringList list;
-	if (stack.isEmpty()) {
-		list << s.c_str();
-	} else {
-		list = stack.pop();
-		list << s.c_str();
-	}
+	if (!stack.isEmpty()) list = stack.pop();
+	//list << s.c_str();
+	list << current_value.join("");
 	stack.push(list);
+	current_value.clear();
 }
 
 void mirc_script_engine::clear_stack(char const*, char const*) {

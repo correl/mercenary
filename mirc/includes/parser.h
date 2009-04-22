@@ -41,7 +41,8 @@ typedef QMap<QString, mirc_alias> mirc_aliases;
 
 enum mirc_engine_stage {
 	PARSE,
-	EXECUTE
+	EXECUTE,
+	TERMINATED
 };
 
 class mirc_script_engine : public QObject {
@@ -50,6 +51,7 @@ private:
 	MIRCScriptManager *manager;
 	mirc_aliases::iterator current_alias;
 	mirc_variables::iterator current_variable;
+	QStringList current_value;
 	QStack<QStringList> stack;
 
 public:
@@ -69,6 +71,7 @@ public:
 	void declare_variable(char const* str, char const* end);
 	void assign_variable(char const* str, char const* end);
 	void fetch_variable(char const*, char const*);
+	void append_value(char const* str, char const *end);
 	void append_expression(char const* str, char const *end);
 	void clear_stack(char const*, char const*);
 };
@@ -84,8 +87,10 @@ struct mirc_script : public grammar<mirc_script> {
 	struct definition {
 		rule<ScannerT>	script,
 						space,
+						nospace,
 						identifier,
 						string,
+						value,
 						expression,
 						expression_group,
 						parameters,
@@ -109,6 +114,7 @@ struct mirc_script : public grammar<mirc_script> {
 			s_action v_def ( bind( &mirc_script_engine::declare_variable, self.actions, _1, _2 ) );
 			s_action v_assign ( bind( &mirc_script_engine::assign_variable, self.actions, _1, _2 ) );
 			s_action v_fetch ( bind( &mirc_script_engine::fetch_variable, self.actions, _1, _2 ) );
+			s_action v_append ( bind( &mirc_script_engine::append_value, self.actions, _1, _2 ) );
 			s_action e_append ( bind( &mirc_script_engine::append_expression, self.actions, _1, _2 ) );
 			s_action s_code ( bind( &mirc_script_engine::store_code, self.actions, _1, _2 ) );
 			s_action c_stack ( bind( &mirc_script_engine::clear_stack, self.actions, _1, _2 ) );
@@ -124,17 +130,24 @@ struct mirc_script : public grammar<mirc_script> {
 					|	str_p("$&") >> *blank_p >> eol_p
 				)
 				;
+			nospace
+				=	+space >> str_p("$+") >> +space
+				;
 			identifier
 				=	alpha_p >> *alnum_p
 				;
 			string
-				=	(	variable[e_append][v_fetch]
-						| alias_function[e_append]
-						| (+(graph_p - ch_p(',') - ch_p('(') - ch_p(')')))[e_append]
+				=	(+(graph_p - ch_p(',') - ch_p('(') - ch_p(')')))
+				;
+			value
+				=	(	variable[v_append][v_fetch]
+						| alias_function[v_append]
+						| string[v_append]
 					)
 				;
 			expression
-				=	string >> *(*space >> string)
+				=	(*nospace >> value)[e_append]
+				>>	*(+space >> (+(*nospace >> value))[e_append])
 				;
 			expression_group
 				=	expression | expression_group
