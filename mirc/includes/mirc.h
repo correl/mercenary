@@ -19,16 +19,16 @@ class MIRCScriptManager : public QObject {
 	Q_OBJECT
 private:
 	QObject *parent;
-	QVector<MIRCScript> scripts;
+	QVector<MIRCScript*> scripts;
 	QMap<QString, QString> _variables;
 	QMap<QString,void (*)(QStringList)> internal_aliases;
-	QMap<QString, mirc_alias> aliases;
 	QString _return_value;
 	QTextStream *output;
 public:
 	MIRCScriptManager(QObject *parent = 0);
-	/*
+
 	bool load(QString filename);
+	/*
 	bool unload(QString filename);
 	*/
 	void call_alias(QString alias, QStringList arguments);

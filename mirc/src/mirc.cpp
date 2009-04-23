@@ -4,6 +4,16 @@ MIRCScriptManager::MIRCScriptManager(QObject *parent) {
 	this->parent = parent;
 }
 
+bool MIRCScriptManager::load(QString filename) {
+	MIRCScript *script = new MIRCScript(this);
+	if (script->load(filename)) {
+		scripts << script;
+		script->run();
+		return true;
+	}
+	return false;
+}
+
 bool MIRCScriptManager::hasVariable(QString variable) {
 	return _variables.contains(variable);
 }
@@ -30,15 +40,35 @@ void MIRCScriptManager::call_alias(QString alias, QStringList arguments) {
 		// Handle some builtins
 		if (alias == "lower") {
 			return_value(arguments.join(" ").toLower());
+		} else if (alias == "return") {
+			return_value(arguments.join(" "));
+			//TODO: Somehow terminate the currently running script
 		} else if (alias == "version") {
 			return_value(MIRC_VERSION);
 		} else {
-			qDebug() << aliases.keys();
-			if (aliases.find(alias) != aliases.end()) {
-				mirc_alias a = aliases[alias];
-				qDebug() << "SCRIPTED ALIAS" << alias;
+			bool found = false;
+			int script_index = 0;
+			for (int i = 0; i < scripts.size(); i++) {
+				QMap<QString, mirc_alias> aliases = scripts.at(i)->aliases();
+				if (aliases.find(alias) != aliases.end()) {
+					found = true;
+					script_index = i;
+					break;
+				}
 			}
-			emit unknown_alias(alias, arguments);
+			if (found) {
+				MIRCScript *s = new MIRCScript(this);
+				QString code = scripts.at(script_index)->code(alias);
+				if (s->parse(code)) {
+					s->run();
+				} else {
+					qDebug() << "SYNTAX ERROR IN " << alias;
+				}
+				delete s;
+			} else {
+				qDebug() << "UNKNOWN ALIAS" << alias;
+				emit unknown_alias(alias, arguments);
+			}
 		}
 	}
 }

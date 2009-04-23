@@ -6,17 +6,18 @@ set name Correl
 	%middle Roush
 echo Hello %name $+ ! $&
 	How $lower(ArE YoU) $+ ?
-echo You're testing Mercenary v $+ $version
+showversion
 alias dostuff {
 	; Not very useful, but good for testing the parser!
 	var %b = 42
 	%b = $calc(%b * 3)
 	return %b;
 }
-alias -l dosomethingelse {
-	; Useless local alias!
-	echo -s Busy doing nothing
+alias -l getversion {
+	var %version = version $version
+	return %version
 }
-dostuff that nobody will see
-dosomethingelse entirely
-donothing because this alias doesn't exist
+alias -l showversion {
+	echo You're testing Mercenary $getversion
+}
+dostuff

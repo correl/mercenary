@@ -8,7 +8,7 @@
 */
 
 //#define BOOST_SPIRIT_DEBUG
-#include <string>
+#include <string.h>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/spirit/core.hpp>

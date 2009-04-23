@@ -48,7 +48,11 @@ QString MIRCScript::code() {
 }
 
 QString MIRCScript::code(QString alias) {
-	return QString();
+	if (_aliases.find(alias) != _aliases.end()) {
+		return _aliases[alias].code;
+	} else {
+		return QString();
+	}
 }
 
 QMap<QString, mirc_alias> MIRCScript::aliases() {
