@@ -22,11 +22,13 @@ MessageHandler::MessageHandler( IRCClient *irc, QWidget *parent ) : QTabWidget( 
 	// Register aliases
 	this->scriptManager->register_alias("dcc", bind(&MessageHandler::alias_dcc, this, _1));
 	this->scriptManager->register_alias("echo", bind(&MessageHandler::alias_echo, this, _1));
+	this->scriptManager->register_alias("ip", bind(&MessageHandler::alias_ip, this, _1));
 	this->scriptManager->register_alias("join", bind(&MessageHandler::alias_join, this, _1));
 	this->scriptManager->register_alias("msg", bind(&MessageHandler::alias_msg, this, _1));
 	this->scriptManager->register_alias("nick", bind(&MessageHandler::alias_nick, this, _1));
 	this->scriptManager->register_alias("notice", bind(&MessageHandler::alias_notice, this, _1));
 	this->scriptManager->register_alias("privmsg", bind(&MessageHandler::alias_msg, this, _1));
+	this->scriptManager->register_alias("say", bind(&MessageHandler::alias_say, this, _1));
 	this->scriptManager->register_alias("quit", bind(&MessageHandler::alias_quit, this, _1));
 }
 
@@ -193,6 +195,9 @@ void MessageHandler::alias_dcc(QStringList args) {
 void MessageHandler::alias_echo(QStringList args) {
 	((ChatWindow*)this->currentWidget())->echo(args.join(" "));
 }
+void MessageHandler::alias_ip(QStringList args) {
+	scriptManager->return_value(irc->getIPAddress());
+}
 void MessageHandler::alias_join(QStringList args) {
 	irc->join( args.join( "," ) );
 }
@@ -222,6 +227,12 @@ void MessageHandler::alias_notice(QStringList args) {
 	if( args.count() < 2 ) { return; }
 	QString dest = args.takeFirst();
 	irc->notice( dest, args.join( " " ) );
+}
+void MessageHandler::alias_say(QStringList args) {
+	QString target = this->tabText(this->currentIndex());
+	if (target != "status") {
+		alias_msg(QStringList(target) + args);
+	}
 }
 void MessageHandler::alias_quit(QStringList args) {
 	if( args.count() > 0 ) { irc->quit( args.join( " " ) ); }

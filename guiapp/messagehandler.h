@@ -29,10 +29,12 @@ public:
 	void alias_ctcp(QStringList args);
 	void alias_dcc(QStringList args);
 	void alias_echo(QStringList args);
+	void alias_ip(QStringList args);
 	void alias_join(QStringList args);
 	void alias_msg(QStringList args);
 	void alias_nick(QStringList args);
 	void alias_notice(QStringList args);
+	void alias_say(QStringList args);
 	void alias_quit(QStringList args);
 public slots:
 	void messageRcvd( QString type, QString src, QString dest, QStringList values, QString text );
