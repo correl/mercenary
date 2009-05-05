@@ -19,6 +19,7 @@ bool MIRCScript::load(QString filename) {
 }
 
 bool MIRCScript::parse(QString code) {
+	const char* _code = code.toLatin1();
 	parse_info<> info = boost::spirit::parse((const char*)code.toLatin1(), *parser);
 	loaded = info.full;
 	if (loaded) {
@@ -30,7 +31,18 @@ bool MIRCScript::parse(QString code) {
 
 bool MIRCScript::run() {
 	if (!loaded) return false;
-	interpreter->stage = EXECUTE;
+	interpreter->set_stage(EXECUTE);
+//	interpreter->stage = EXECUTE;
+//	interpreter->line = 0;
+//	iterator_t begin(_code, _code+strlen(_code));
+//	iterator_t end;
+
+	/* Doing it this way affects all the damned callbacks...
+	const char* _code = (const char*)script.toLatin1();
+	begin = new iterator_t(_code, _code+strlen(_code));
+	end = new iterator_t();
+	parse_info<iterator_t> info = boost::spirit::parse(*begin, *end, *parser);
+	*/
 	parse_info<> info = boost::spirit::parse((const char*)script.toLatin1(), *parser);
 	if (info.full) {
 		_variables = interpreter->vars;
@@ -53,6 +65,10 @@ QString MIRCScript::code(QString alias) {
 	} else {
 		return QString();
 	}
+}
+
+int MIRCScript::line() {
+	return interpreter->line;
 }
 
 QMap<QString, mirc_alias> MIRCScript::aliases() {

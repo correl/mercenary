@@ -16,6 +16,8 @@ private:
 	QMap<QString, QString> _variables;
 	mirc_script_engine *interpreter;
 	mirc_script *parser;
+	iterator_t *begin;
+	iterator_t *end;
 	bool loaded;
 public:
 	MIRCScript(MIRCScriptManager *m);
@@ -25,6 +27,7 @@ public:
 	bool run(QString alias);
 	QString code();
 	QString code(QString alias);
+	int line();
 	QMap<QString, mirc_alias> aliases();
 	QMap<QString, QString> variables();
 };

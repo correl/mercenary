@@ -4,9 +4,14 @@
 
 mirc_script_engine::mirc_script_engine(MIRCScriptManager *m) : script() {
 	manager = m;
-	stage = PARSE;
+	set_stage(PARSE);
 	current_alias = aliases.end();
 	current_variable = vars.end();
+}
+
+void mirc_script_engine::set_stage(mirc_engine_stage _stage) {
+	this->stage = _stage;
+	this->line = 1;
 }
 
 void mirc_script_engine::handle_alias_definition(char const* str, char const* end) {
@@ -14,14 +19,14 @@ void mirc_script_engine::handle_alias_definition(char const* str, char const* en
 	
 	string s(str, end);
 	QString alias(s.c_str());
-	this->aliases.insert(alias, mirc_alias(true));
+	this->aliases.insert(alias, mirc_alias(line, true));
 	current_alias = this->aliases.find(alias);
 }
 void mirc_script_engine::handle_alias_definition_local(char const* str, char const* end) {
 	if (stage != PARSE) return;
 	
 	string s(str, end);
-	aliases.insert(s.c_str(), mirc_alias(false));
+	aliases.insert(s.c_str(), mirc_alias(line, false));
 	current_alias = aliases.find(s.c_str());
 }
 void mirc_script_engine::close_alias(char const*, char const*) {
@@ -40,6 +45,9 @@ void mirc_script_engine::store_code(char const* str, char const* end) {
 	} else {
 		script.code.append(s.c_str()).append("\n");
 	}
+}
+void mirc_script_engine::code_line(char const* str, char const* end) {
+	line++;
 }
 void mirc_script_engine::set_alias(char const* str, char const* end) {
 	string s(str, end);

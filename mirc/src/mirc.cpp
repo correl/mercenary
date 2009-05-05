@@ -2,12 +2,14 @@
 
 MIRCScriptManager::MIRCScriptManager(QObject *parent) {
 	this->parent = parent;
+	line_offset = 0;
 }
 
 bool MIRCScriptManager::load(QString filename) {
 	MIRCScript *script = new MIRCScript(this);
 	if (script->load(filename)) {
 		scripts << script;
+		current_script = script;
 		script->run();
 		return true;
 	}
@@ -35,10 +37,10 @@ void MIRCScriptManager::call_alias(QString alias, QStringList arguments) {
 	if (internal_aliases.find(alias) != internal_aliases.end()) {
 		internal_aliases[alias](arguments);
 	} else {
-		//TODO: check known scripted aliases!!!
-		
 		// Handle some builtins
-		if (alias == "lower") {
+		if (alias == "line") {
+			return_value(QString::number(current_script->line() + line_offset));
+		} else if (alias == "lower") {
 			return_value(arguments.join(" ").toLower());
 		} else if (alias == "return") {
 			return_value(arguments.join(" "));
@@ -58,12 +60,18 @@ void MIRCScriptManager::call_alias(QString alias, QStringList arguments) {
 			}
 			if (found) {
 				MIRCScript *s = new MIRCScript(this);
+				MIRCScript *p = current_script;
+				int offset = line_offset;
+				line_offset = scripts.at(script_index)->aliases()[alias].line;
+				current_script = s;
 				QString code = scripts.at(script_index)->code(alias);
 				if (s->parse(code)) {
 					s->run();
 				} else {
 					qDebug() << "SYNTAX ERROR IN " << alias;
 				}
+				current_script = p;
+				line_offset = offset;
 				delete s;
 			} else {
 				qDebug() << "UNKNOWN ALIAS" << alias;

@@ -14,6 +14,7 @@
 #include <boost/spirit/core.hpp>
 #include <boost/spirit/utility/confix.hpp>
 #include <boost/spirit/dynamic/if.hpp>
+#include <boost/spirit/iterator/position_iterator.hpp>
 
 #include <QObject>
 #include <QString>
@@ -28,12 +29,15 @@ using namespace boost;
 using namespace boost::spirit;
 
 typedef QMap<QString, QString> mirc_variables;
+typedef position_iterator<char const*> iterator_t;
 
 struct mirc_alias {
-	mirc_alias(bool _global = true) {
+	mirc_alias(int _line = 0, bool _global = true) {
+		line = _line;
 		global = _global;
 	}
 	bool global;
+	int line;
 	QString code;
 };
 
@@ -60,13 +64,17 @@ public:
 	mirc_alias script;
 	mirc_aliases aliases;
 	mirc_variables vars;
+	int line;
 
 	mirc_script_engine(MIRCScriptManager *m);
 	
+	void set_stage(mirc_engine_stage _stage);
+
 	void handle_alias_definition(char const* str, char const* end);
 	void handle_alias_definition_local(char const* str, char const* end);
 	void close_alias(char const*, char const*);
 	void store_code(char const* str, char const* end);
+	void code_line(char const* str, char const* end);
 	void set_alias(char const* str, char const* end);
 	void call_alias(char const*, char const*);
 	void return_alias(char const*, char const*);
@@ -120,6 +128,7 @@ struct mirc_script : public grammar<mirc_script> {
 			s_action v_append ( bind( &mirc_script_engine::append_value, self.actions, _1, _2 ) );
 			s_action e_append ( bind( &mirc_script_engine::append_expression, self.actions, _1, _2 ) );
 			s_action s_code ( bind( &mirc_script_engine::store_code, self.actions, _1, _2 ) );
+			s_action c_line (bind( &mirc_script_engine::code_line, self.actions, _1, _2 ) );
 			s_action c_stack ( bind( &mirc_script_engine::clear_stack, self.actions, _1, _2 ) );
 			
 			script
@@ -130,7 +139,7 @@ struct mirc_script : public grammar<mirc_script> {
 				;
 			space
 				=	(	blank_p
-					|	str_p("$&") >> *blank_p >> eol_p
+					|	str_p("$&") >> *blank_p >> eol_p[c_line]
 				)
 				;
 			nospace
@@ -183,23 +192,23 @@ struct mirc_script : public grammar<mirc_script> {
 			alias_definition
 				=	str_p("alias") >> *space
 				>>	if_p(str_p("-l") >> *space)[identifier[l_def]].else_p[identifier[a_def]]
-				>> *space >> !eol_p
+				>> *space >> !eol_p[c_line]
 				>>	code_block
 				;
 			code_line
 				=	*space
-				>> (	comment
+				>> (	comment[c_line]
 					|	(
 							assignment /* Must come first to avoid "var" being caught as an action */
 						|	alias_action
 						)[s_code]
 					)[c_stack]
-				>> !eol_p
+				>> !eol_p[c_line]
 				;
 			code_block
-				=	(	*space >> ch_p('{') >> *space >> !eol_p
+				=	(	*space >> ch_p('{') >> *space >> !eol_p[c_line]
 					>>	(*code_line)
-					>>	ch_p('}') >> *space >> !eol_p
+					>>	ch_p('}') >> *space >> !eol_p[c_line]
 					)
 				|	code_line
 				;

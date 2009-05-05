@@ -24,6 +24,9 @@ private:
 	QMap<QString,void (*)(QStringList)> internal_aliases;
 	QString _return_value;
 	QTextStream *output;
+	MIRCScript* current_script;
+	int line_offset;
+
 public:
 	MIRCScriptManager(QObject *parent = 0);
 
