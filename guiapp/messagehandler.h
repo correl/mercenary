@@ -25,10 +25,16 @@ private:
 public:
 	MessageHandler( IRCClient *irc, QWidget *parent = 0 );
 
+	void alias_connect(QStringList args);
+	void alias_ctcp(QStringList args);
+	void alias_dcc(QStringList args);
+	void alias_echo(QStringList args);
 	void alias_join(QStringList args);
 	void alias_msg(QStringList args);
+	void alias_nick(QStringList args);
+	void alias_notice(QStringList args);
+	void alias_quit(QStringList args);
 public slots:
-	bool call_alias(QString alias, QStringList args);
 	void messageRcvd( QString type, QString src, QString dest, QStringList values, QString text );
 	void messageSentDCC( QString nickName, QString text );
 	void messageRcvdDCC( QString nickName, QString text );

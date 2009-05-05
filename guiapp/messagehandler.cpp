@@ -3,7 +3,7 @@
 
 MessageHandler::MessageHandler( IRCClient *irc, QWidget *parent ) : QTabWidget( parent ) {
 	this->scriptManager = new MIRCScriptManager();
-	connect(this->scriptManager, SIGNAL( unknown_alias( QString, QStringList ) ), this, SLOT( call_alias( QString, QStringList ) ) );
+	//connect(this->scriptManager, SIGNAL( unknown_alias( QString, QStringList ) ), this, SLOT( call_alias( QString, QStringList ) ) );
 	this->irc = irc;
 	connect( irc, SIGNAL( messageRcvd( QString, QString, QString, QStringList, QString ) ), this, SLOT( messageRcvd( QString, QString, QString, QStringList, QString ) ) );
 	connect( irc, SIGNAL( registered() ), this, SLOT( autoRun() ) );
@@ -19,6 +19,15 @@ MessageHandler::MessageHandler( IRCClient *irc, QWidget *parent ) : QTabWidget( 
 	
 	// Set up variables
 	variables["address"] = "$ip";
+	// Register aliases
+	this->scriptManager->register_alias("dcc", bind(&MessageHandler::alias_dcc, this, _1));
+	this->scriptManager->register_alias("echo", bind(&MessageHandler::alias_echo, this, _1));
+	this->scriptManager->register_alias("join", bind(&MessageHandler::alias_join, this, _1));
+	this->scriptManager->register_alias("msg", bind(&MessageHandler::alias_msg, this, _1));
+	this->scriptManager->register_alias("nick", bind(&MessageHandler::alias_nick, this, _1));
+	this->scriptManager->register_alias("notice", bind(&MessageHandler::alias_notice, this, _1));
+	this->scriptManager->register_alias("privmsg", bind(&MessageHandler::alias_msg, this, _1));
+	this->scriptManager->register_alias("quit", bind(&MessageHandler::alias_quit, this, _1));
 }
 
 void MessageHandler::_addWindow( QString name, QString defaultCmd, bool focusOnOpen ) {
@@ -144,84 +153,77 @@ void MessageHandler::connectedDCCChat( QString nickName ) {
 void MessageHandler::sentRAW( QString text ) { qDebug() << ">>> " << text.trimmed(); }
 void MessageHandler::rcvdRAW( QString text ) { qDebug() << "<<< " << text.trimmed(); }
 
-bool MessageHandler::call_alias(QString alias, QStringList args) {
-	QStringList newargs;
-	if( alias == "server" || alias == "connect" ) {
-		if( args.count() < 1 ) { return true; }
-		irc->quit( tr( "Changing servers" ) );
-		QString host = args.takeFirst();
-		int port = 0;
-		if( host.contains( ':' ) ) {
-			QStringList splitHost = host.split( ':' );
-			host = splitHost.takeFirst();
-			port = splitHost.join( "" ).toInt();
-		}
-		port = port > 0 ? port : 6667;
-		QString nickName = args.count() > 0 ? args.takeFirst() : irc->getNickName();
-		QString userName = args.count() > 0 ? args.takeFirst() : irc->getUserName();
-		QString realName = args.count() > 0 ? args.join( " " ) : irc->getRealName();
-		irc->connectAndRegister(
-			host, // Host
-			port > 0 ? port : 6667, // Port
-			nickName,
-			userName,
-			realName );
-	} else if( alias == "nick" ) {
-		if( args.count() < 1 ) { return true; }
-		irc->nick( args[0] );
-	} else if( alias == "msg" || alias == "privmsg" ) {
-		if( args.count() < 2 ) { return true; }
-		newargs += args.takeFirst();
-		if( newargs[0].startsWith( "=")  ) {
-			// DCC Chat
-			((DCCChatServer*)DCCServers[DCCNicks[newargs[0].right( newargs[0].length() - 1 )]])->sendText( args.join( " " ) );
-		} else {
-			irc->msg( newargs[0], args.join( " " ) );
-		}
-		// Update existing chat windows with the sent message
-		QString window;
-		QStringList windows = newargs[0].split( "," );
-		foreach( window, windows ) {
-			if( !window.startsWith( "=" ) && this->windows.keys().contains( window ) ) { this->windows[window]->message( irc->getNickName(), args.join( " " ) ); }
-		}
-	} else if( alias == "notice" ) {
-		if( args.count() < 2 ) { return true; }
-		QString dest = args.takeFirst();
-		irc->notice( dest, args.join( " " ) );
-	} else if( alias == "ctcp" ) {
-		if( args.count() < 2 ) { return true; }
-		newargs += args.takeFirst();
-		irc->ctcp( newargs[0], args.join( " " ) );
-	} else if( alias == "join" ) {
-		irc->join( args.join( "," ) );
-	} else if( alias == "set" ) {
-		QString var = args.takeFirst();
-		variables[var] = args.join( " " );
-	} else if( alias == "dcc" ) {
-		if( args.count() < 2 ) { return true; }
-		QString type = args.takeFirst();
-		QString nick = args.takeFirst();
-		if( type == "chat" ) {
-			startDCC( nick );
-		} else if( type == "send" ) {
-			if( args.count() == 0 ) { return true; }
-			startDCC( nick, args.join( " " ) );
-		}
-	} else if( alias == "quit" || alias == "q" ) {
-		if( args.count() > 0 ) { irc->quit( args.join( " " ) ); }
-		else { irc->quit(); }
-	} else if(alias == "echo") {
-		windows["status"]->echo(args.join(" "));
-	} else {
-		//TODO: Script error! Unknown alias.... WHEREVER WE ARE IN WHICHEVER SCRIPT IT IS THAT WE'RE RUNNING!!
-		//BUT WAIT!!!!! NO!!!! The script manager is the only thing handling that!!!
-		//IN FACT, ALL THE ABOVE ALIASES BELONG IN THE IRC CLIENT LIBRARY, REALLY! PERHAPS?
-		return false;
+void MessageHandler::alias_connect(QStringList args) {
+	if( args.count() < 1 ) { return; }
+	irc->quit( tr( "Changing servers" ) );
+	QString host = args.takeFirst();
+	int port = 0;
+	if( host.contains( ':' ) ) {
+		QStringList splitHost = host.split( ':' );
+		host = splitHost.takeFirst();
+		port = splitHost.join( "" ).toInt();
 	}
-	return true;
+	port = port > 0 ? port : 6667;
+	QString nickName = args.count() > 0 ? args.takeFirst() : irc->getNickName();
+	QString userName = args.count() > 0 ? args.takeFirst() : irc->getUserName();
+	QString realName = args.count() > 0 ? args.join( " " ) : irc->getRealName();
+	irc->connectAndRegister(
+		host, // Host
+		port > 0 ? port : 6667, // Port
+		nickName,
+		userName,
+		realName );
+}
+void MessageHandler::alias_ctcp(QStringList args) {
+	if( args.count() < 2 ) { return; }
+	QString target = args.takeFirst();
+	irc->ctcp( target, args.join( " " ) );
+}
+void MessageHandler::alias_dcc(QStringList args) {
+	if( args.count() < 2 ) { return; }
+	QString type = args.takeFirst();
+	QString nick = args.takeFirst();
+	if( type == "chat" ) {
+		startDCC( nick );
+	} else if( type == "send" ) {
+		if( args.count() == 0 ) { return; }
+		startDCC( nick, args.join( " " ) );
+	}
+}
+void MessageHandler::alias_echo(QStringList args) {
+	((ChatWindow*)this->currentWidget())->echo(args.join(" "));
 }
 void MessageHandler::alias_join(QStringList args) {
 	irc->join( args.join( "," ) );
 }
 void MessageHandler::alias_msg(QStringList args) {
+	if( args.count() < 2 ) { return; }
+	QString target = args.takeFirst();
+	if( target.startsWith( "=")  ) {
+		// DCC Chat
+		((DCCChatServer*)DCCServers[DCCNicks[target.right( target.length() - 1 )]])->sendText( args.join( " " ) );
+	} else {
+		irc->msg( target, args.join( " " ) );
+	}
+	// Update existing chat windows with the sent message
+	QString window;
+	QStringList windows = target.split( "," );
+	foreach( window, windows ) {
+		if( !window.startsWith( "=" ) && this->windows.keys().contains( window ) ) { this->windows[window]->message( irc->getNickName(), args.join( " " ) ); }
+	}
+}
+void MessageHandler::alias_nick(QStringList args) {
+	if( args.count() > 1 ) {
+		irc->nick( args[0] );
+	}
+	this->scriptManager->return_value(irc->getNickName());
+}
+void MessageHandler::alias_notice(QStringList args) {
+	if( args.count() < 2 ) { return; }
+	QString dest = args.takeFirst();
+	irc->notice( dest, args.join( " " ) );
+}
+void MessageHandler::alias_quit(QStringList args) {
+	if( args.count() > 0 ) { irc->quit( args.join( " " ) ); }
+	else { irc->quit(); }
 }
