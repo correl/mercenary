@@ -4,6 +4,9 @@ echo TEST Code line match [ 2 = $line ]
 echo TEST Code line match [ 4 = $line ]
 set name Correl
 %first = Correl
+
+
+
 %middle = Joseph
 %name = %first $&
 	%middle Roush
@@ -22,6 +25,11 @@ alias -l getversion {
 }
 alias -l showversion {
 	echo You're testing Mercenary $getversion
-	echo TEST Code line match [ 23 = $line ]
+	echo TEST Code line match [ 25 = $line ]
+}
+on *:TEXT:something:echo hey I got a message
+
+on *:QUIT:{
+	echo Quitting!
 }
 dostuff

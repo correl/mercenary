@@ -10,7 +10,7 @@ MessageHandler::MessageHandler( IRCClient *irc, QWidget *parent ) : QTabWidget( 
 	connect( irc, SIGNAL( sentRAW( QString ) ), this, SLOT( sentRAW( QString ) ) );
 	connect( irc, SIGNAL( rcvdRAW( QString ) ), this, SLOT( rcvdRAW( QString ) ) );
 	this->setTabPosition( QTabWidget::South );
-	_addWindow( "status", "", true );
+	_addWindow( "status", "say", true );
 	
 	DCCPortMin = 1024;
 	DCCPortMax = 5000;
@@ -66,7 +66,7 @@ void MessageHandler::messageRcvd( QString type, QString src, QString dest, QStri
 	
 	// Handle special messages first
 	if( type == "JOIN" ) {
-		_addWindow( text, "msg " + text, true );
+		_addWindow( text, "say", true );
 	}
 	
 	if( !dest.isEmpty() && dest.startsWith( '#' ) ) {
@@ -89,19 +89,19 @@ void MessageHandler::messageRcvd( QString type, QString src, QString dest, QStri
 	}
 	
 	//emit dispatchMessage( window, src, message );
-	_addWindow( window, "msg " + window );
+	_addWindow( window, "say" );
 	windows[window]->message( source, message );
 }
 
 void MessageHandler::messageSentDCC( QString nickName, QString text ) {
 	QString window = nickName.prepend( "=" );
-	_addWindow( window, "msg " + window );
+	_addWindow( window, "say" );
 	windows[window]->message( irc->getNickName(), text );
 }
 
 void MessageHandler::messageRcvdDCC( QString nickName, QString text ) {
 	QString window = "=" + nickName;
-	_addWindow( window, "msg " + window );
+	_addWindow( window, "say" );
 	windows[window]->message( nickName, text );
 }
 
@@ -148,7 +148,7 @@ void MessageHandler::connectedDCCChat( QString nickName ) {
 	connect( dcc, SIGNAL( rcvdText( QString, QString ) ), this, SLOT( messageRcvdDCC( QString, QString ) ) );
 	connect( dcc, SIGNAL( sentText( QString, QString ) ), this, SLOT( messageSentDCC( QString, QString ) ) );
 	QString window = nickName.prepend( "=" );
-	_addWindow( window, "msg " + window );
+	_addWindow( window, "say" );
 	windows[window]->echo( "DCC Chat Connected" );
 }
 
@@ -218,7 +218,7 @@ void MessageHandler::alias_msg(QStringList args) {
 	}
 }
 void MessageHandler::alias_nick(QStringList args) {
-	if( args.count() > 1 ) {
+	if( args.count() > 0 ) {
 		irc->nick( args[0] );
 	}
 	this->scriptManager->return_value(irc->getNickName());

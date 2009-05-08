@@ -58,9 +58,10 @@ private:
 	QStringList current_value;
 	QStack<QStringList> stack;
 	QString _alias;
+	mirc_engine_stage stage;
+	bool fetch;
 
 public:
-	mirc_engine_stage stage;
 	mirc_alias script;
 	mirc_aliases aliases;
 	mirc_variables vars;
@@ -69,9 +70,11 @@ public:
 	mirc_script_engine(MIRCScriptManager *m);
 	
 	void set_stage(mirc_engine_stage _stage);
+	void set_fetch(bool _fetch);
 
 	void handle_alias_definition(char const* str, char const* end);
 	void handle_alias_definition_local(char const* str, char const* end);
+	void handle_event_definition(char const* str, char const* end);
 	void close_alias(char const*, char const*);
 	void store_code(char const* str, char const* end);
 	void code_line(char const* str, char const* end);
@@ -109,6 +112,8 @@ struct mirc_script : public grammar<mirc_script> {
 						alias_action,
 						alias_function,
 						alias_definition,
+						event_option,
+						event_definition,
 						code_line,
 						code_block,
 						comment;
@@ -118,6 +123,7 @@ struct mirc_script : public grammar<mirc_script> {
 			typedef function< void(const char*, const char*) > s_action;
 			s_action a_def ( bind( &mirc_script_engine::handle_alias_definition, self.actions, _1, _2 ) );
 			s_action l_def ( bind( &mirc_script_engine::handle_alias_definition_local, self.actions, _1, _2 ) );
+			s_action e_def ( bind( &mirc_script_engine::handle_event_definition, self.actions, _1, _2 ) );
 			s_action a_close ( bind( &mirc_script_engine::close_alias, self.actions, _1, _2 ) );
 			s_action a_set ( bind( &mirc_script_engine::set_alias, self.actions, _1, _2 ) );
 			s_action a_call ( bind( &mirc_script_engine::call_alias, self.actions, _1, _2 ) );
@@ -134,6 +140,7 @@ struct mirc_script : public grammar<mirc_script> {
 			script
 				=	*(
 						alias_definition[a_close]
+					|	event_definition
 					|	code_block
 					) >> end_p
 				;
@@ -195,12 +202,24 @@ struct mirc_script : public grammar<mirc_script> {
 				>> *space >> !eol_p[c_line]
 				>>	code_block
 				;
+			event_option
+				=	(+(graph_p - ch_p(':')))
+				;
+			event_definition
+				=	str_p("on") >> *space
+				>>	(	//event_option >> ch_p(':') >> event_option /* level:EVENT */
+					//>>	*(ch_p(':') >> event_option) >> ch_p(':') /* options */
+						+(event_option[v_append][e_append] >> ch_p(':'))
+					)[e_def]
+				>>	code_block
+				;
 			code_line
 				=	*space
-				>> (	comment[c_line]
+				>>	(	comment[c_line]
 					|	(
 							assignment /* Must come first to avoid "var" being caught as an action */
 						|	alias_action
+						|	eol_p[c_line]
 						)[s_code]
 					)[c_stack]
 				>> !eol_p[c_line]

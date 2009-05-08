@@ -5,6 +5,7 @@
 mirc_script_engine::mirc_script_engine(MIRCScriptManager *m) : script() {
 	manager = m;
 	set_stage(PARSE);
+	set_fetch(true);
 	current_alias = aliases.end();
 	current_variable = vars.end();
 }
@@ -12,6 +13,9 @@ mirc_script_engine::mirc_script_engine(MIRCScriptManager *m) : script() {
 void mirc_script_engine::set_stage(mirc_engine_stage _stage) {
 	this->stage = _stage;
 	this->line = 1;
+}
+void mirc_script_engine::set_fetch(bool _fetch) {
+	this->fetch = _fetch;
 }
 
 void mirc_script_engine::handle_alias_definition(char const* str, char const* end) {
@@ -35,6 +39,11 @@ void mirc_script_engine::close_alias(char const*, char const*) {
 	if (!aliases.empty() && current_alias != aliases.end()) {
 		current_alias = aliases.end();
 	}
+}
+void mirc_script_engine::handle_event_definition(char const* str, char const* end) {
+	if (stage != PARSE) return;
+	string s(str, end);
+	qDebug() << "EVENT DEFINITION" << s.c_str();
 }
 void mirc_script_engine::store_code(char const* str, char const* end) {
 	if (stage != PARSE) return;
@@ -63,7 +72,7 @@ void mirc_script_engine::call_alias(char const* str, char const* end) {
 	stack.pop();
 }
 void mirc_script_engine::return_alias(char const* str, char const* end) {
-	if (stage != EXECUTE) return;
+	if (stage != EXECUTE || !fetch) return;
 	string s(str, end);
 	manager->call_alias(_alias, stack.top());
 	stack.pop();
@@ -88,7 +97,7 @@ void mirc_script_engine::assign_variable(char const* str, char const* end) {
 	}
 }
 void mirc_script_engine::fetch_variable(char const*, char const*) {
-	if (stage != EXECUTE) return;
+	if (stage != EXECUTE || !fetch) return;
 	
 	if (!current_value.isEmpty()) {
 		QString var = current_value.last();
