@@ -2,14 +2,13 @@
 echo TEST Code line match [ 2 = $line ]
 ; Test comment
 echo TEST Code line match [ 4 = $line ]
-set name Correl
 %first = Correl
-
+set %last Roush
 
 
 %middle = Joseph
 %name = %first $&
-	%middle Roush
+	%middle %last
 echo Hello %name $+ ! $&
 	How $lower(ArE YoU) $+ ?
 showversion

@@ -179,10 +179,20 @@ struct mirc_script : public grammar<mirc_script> {
 				=	ch_p('%') >> identifier
 				;
 			assignment
-				=	!(str_p("var") >> *space)
-				>>	variable[v_def]
-				>>	*space >> ch_p('=') >> *space
-				>>	expression[v_assign]
+				=	(
+						!(str_p("var") >> *space)
+					>>	variable[v_def]
+					>>	*space >> ch_p('=') >> *space
+					>>	expression[v_assign]
+					)
+				|
+					(
+						!ch_p('/')
+					>>	str_p("set") >> *space
+					>>	variable[v_def]
+					>>	*space
+					>>	expression[v_assign]
+					)
 				;
 			alias_action
 				=	!ch_p('/') >> !ch_p('/')
