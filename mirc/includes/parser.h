@@ -11,10 +11,10 @@
 #include <string.h>
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
-#include <boost/spirit/core.hpp>
-#include <boost/spirit/utility/confix.hpp>
-#include <boost/spirit/dynamic/if.hpp>
-#include <boost/spirit/iterator/position_iterator.hpp>
+#include <boost/spirit/include/classic_core.hpp>
+#include <boost/spirit/include/classic_confix.hpp>
+#include <boost/spirit/include/classic_if.hpp>
+#include <boost/spirit/include/classic_position_iterator.hpp>
 
 #include <QObject>
 #include <QString>
@@ -26,7 +26,7 @@ class MIRCScriptManager;
 
 using namespace std;
 using namespace boost;
-using namespace boost::spirit;
+using namespace boost::spirit::classic;
 
 typedef QMap<QString, QString> mirc_variables;
 typedef position_iterator<char const*> iterator_t;

@@ -20,7 +20,7 @@ bool MIRCScript::load(QString filename) {
 
 bool MIRCScript::parse(QString code) {
 	const char* _code = code.toLatin1();
-	parse_info<> info = boost::spirit::parse((const char*)code.toLatin1(), *parser);
+	parse_info<> info = boost::spirit::classic::parse((const char*)code.toLatin1(), *parser);
 	loaded = info.full;
 	if (loaded) {
 		script = interpreter->script.code;
@@ -41,9 +41,9 @@ bool MIRCScript::run() {
 	const char* _code = (const char*)script.toLatin1();
 	begin = new iterator_t(_code, _code+strlen(_code));
 	end = new iterator_t();
-	parse_info<iterator_t> info = boost::spirit::parse(*begin, *end, *parser);
+	parse_info<iterator_t> info = boost::spirit::classic::parse(*begin, *end, *parser);
 	*/
-	parse_info<> info = boost::spirit::parse((const char*)script.toLatin1(), *parser);
+	parse_info<> info = boost::spirit::classic::parse((const char*)script.toLatin1(), *parser);
 	if (info.full) {
 		_variables = interpreter->vars;
 	}
