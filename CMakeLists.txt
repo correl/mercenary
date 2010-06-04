@@ -6,6 +6,7 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 find_package (Qt4 REQUIRED)
 set (QT_DONT_USE_QTGUI TRUE)
 set (QT_USE_QTNETWORK TRUE)
+find_package (Boost REQUIRED)
 
 include (${QT_USE_FILE})
 set (LIBS ${QT_LIBRARIES})
