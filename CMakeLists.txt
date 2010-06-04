@@ -7,6 +7,7 @@ find_package (Qt4 REQUIRED)
 set (QT_DONT_USE_QTGUI TRUE)
 set (QT_USE_QTNETWORK TRUE)
 find_package (Boost REQUIRED)
+include_directories(${Boost_INCLUDE_DIRS})
 
 include (${QT_USE_FILE})
 set (LIBS ${QT_LIBRARIES})
